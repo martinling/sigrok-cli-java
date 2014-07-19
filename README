@@ -23,3 +23,19 @@ It is not intended to:
 
  - replace sigrok-cli as the "official" command line client of the sigrok
    project.
+
+Building & Running
+------------------
+
+First, install the libsigrok java bindings (instructions below assume in /usr/local).
+
+Also download the most recent argparse4j jar file from:
+http://sourceforge.net/projects/argparse4j/files/
+
+To build:
+
+$ javac -classpath /usr/local/share/java/sigrok-core.jar:argparse4j.jar:. SigrokCLI.java 
+
+To run:
+
+$ java -classpath /usr/local/share/java/sigrok-core.jar:argparse4j.jar:. -Djava.library.path=/usr/local/lib/jni SigrokCLI
