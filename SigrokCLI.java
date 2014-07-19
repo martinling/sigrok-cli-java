@@ -164,7 +164,7 @@ class SigrokCLI
             {
                 System.out.printf("  %-20s %s\n",
                     driver.get_name(),
-                    driver.get_longname());
+                    driver.get_long_name());
             }
             System.out.printf("\nSupported input formats:\n");
             for (InputFormat input : context.get_input_formats().values())
@@ -185,7 +185,7 @@ class SigrokCLI
         }
 
         if (arg_given("loglevel"))
-            context.set_loglevel(LogLevel.get(arg_int("loglevel")));
+            context.set_log_level(LogLevel.get(arg_int("loglevel")));
 
         if (arg_given("scan") && !arg_given("driver"))
         {
@@ -335,7 +335,7 @@ class SigrokCLI
         Output output = output_format.create_output(device);
 
         /* Add datafeed callback. */
-        session.add_callback(new CLIDatafeedCallback(output));
+        session.add_datafeed_callback(new CLIDatafeedCallback(output));
 
         if (arg_given("input_file"))
         {
