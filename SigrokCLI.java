@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import org.sigrok.core.interfaces.DatafeedCallback;
 import org.sigrok.core.classes.*;
 
 import net.sourceforge.argparse4j.ArgumentParsers;
