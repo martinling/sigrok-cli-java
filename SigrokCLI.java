@@ -51,16 +51,16 @@ class SigrokCLI
     /* Helper function to print a one-line description of a device. */
     static void print_device_info(HardwareDevice device)
     {
-        System.out.printf("%s -", device.get_driver().get_name());
+        System.out.printf("%s -", device.driver().name());
         String[] parts =
-            {device.get_vendor(), device.get_model(), device.get_version()};
+            {device.vendor(), device.model(), device.version()};
         for (String part : parts)
             if (part.length() > 0)
                 System.out.printf(" %s", part);
-        Vector<Channel> channels = device.get_channels();
+        Vector<Channel> channels = device.channels();
         System.out.printf(" with %d channels:", channels.size());
         for (Channel channel : channels)
-            System.out.printf(" %s", channel.get_name());
+            System.out.printf(" %s", channel.name());
         System.out.println();
     }
 
@@ -158,28 +158,28 @@ class SigrokCLI
             /* Display version information. */
             System.out.printf("SigrokCLI %s", VERSION);
             System.out.printf("\nUsing libsigrok %s (lib version %s).",
-                context.get_package_version(),
-                context.get_lib_version());
+                context.package_version(),
+                context.lib_version());
             System.out.printf("\nSupported hardware drivers:\n");
-            for (Driver driver : context.get_drivers().values())
+            for (Driver driver : context.drivers().values())
             {
                 System.out.printf("  %-20s %s\n",
-                    driver.get_name(),
-                    driver.get_long_name());
+                    driver.name(),
+                    driver.long_name());
             }
             System.out.printf("\nSupported input formats:\n");
-            for (InputFormat input : context.get_input_formats().values())
+            for (InputFormat input : context.input_formats().values())
             {
                 System.out.printf("  %-20s %s\n",
-                    input.get_name(),
-                    input.get_description());
+                    input.name(),
+                    input.description());
             }
             System.out.printf("\nSupported output formats:\n");
-            for (OutputFormat output : context.get_output_formats().values())
+            for (OutputFormat output : context.output_formats().values())
             {
                 System.out.printf("  %-20s %s\n",
-                    output.get_name(),
-                    output.get_description());
+                    output.name(),
+                    output.description());
             }
             System.out.println();
             System.exit(0);
@@ -191,7 +191,7 @@ class SigrokCLI
         if (arg_given("scan") && !arg_given("driver"))
         {
             /* Scan for devices using all drivers. */
-            for (Driver driver : context.get_drivers().values())
+            for (Driver driver : context.drivers().values())
             {
                 for (HardwareDevice device : driver.scan())
                     print_device_info(device);
@@ -200,46 +200,10 @@ class SigrokCLI
         }
 
         Device device = null;
-        HardwareDevice hwdevice = null;
-        InputFileDevice ifdevice = null;
 
         if (arg_given("input_file"))
         {
-            /* Load data from a file. */
-            InputFormat format = null;
-            Map<String, InputFormat> formats = context.get_input_formats();
-
-            if (arg_given("input_format"))
-            {
-                /* Use specified input format. */
-                format = formats.get(arg_string("input_format"));
-            }
-            else
-            {
-                /* Find first input format that matches data. */
-                boolean matched = false;
-                for (InputFormat check_format : formats.values())
-                {
-                    String filename = arg_string("input_file");
-                    if (check_format.format_match(filename))
-                    {
-                        format = check_format;
-                        break;
-                    }
-                }
-                if (format == null)
-                {
-                    System.out.println(
-                        "File not in any recognised input format.");
-                    System.exit(1);
-                }
-            }
-
-            /* Open virtual device for input file. */
-            String filename = arg_string("input_file");
-            Map<String, String> input_options = new HashMap<String, String>();
-            ifdevice = format.open_file(filename, input_options);
-            device = ifdevice;
+            device = context.open_file(arg_string("input_file")).device();
         }
         else if (arg_given("driver"))
         {
@@ -247,7 +211,7 @@ class SigrokCLI
             String[] driver_spec = (arg_string("driver")).split(":");
 
             /* Use specified driver. */
-            Driver driver = context.get_drivers().get(driver_spec[0]);
+            Driver driver = context.drivers().get(driver_spec[0]);
 
             /* Parse key=value configuration pairs. */
             String[] driver_pairs = Arrays.copyOfRange(
@@ -258,7 +222,7 @@ class SigrokCLI
             {
                 String[] parts = pair.split("=");
                 String name = parts[0], value = parts[1];
-                ConfigKey key = ConfigKey.get(name);
+                ConfigKey key = ConfigKey.get_by_identifier(name);
                 scan_options.put(key, key.parse_string(value));
             }
 
@@ -274,9 +238,7 @@ class SigrokCLI
             }
 
             /* Use first device found. */
-            hwdevice = devices.get(0);
-            hwdevice.open();
-            device = hwdevice;
+            device = devices.get(0);
 
             /* Apply device settings from command line. */
             Map<ConfigKey, String> options = new HashMap<ConfigKey, String>();
@@ -290,7 +252,7 @@ class SigrokCLI
                 if (arg_given(name))
                 {
                     String value = arg_string(name);
-                    hwdevice.config_set(key, key.parse_string(value));
+                    device.config_set(key, key.parse_string(value));
                 }
             }
 
@@ -304,8 +266,8 @@ class SigrokCLI
                 {
                     String[] parts = pair.split("=");
                     String name = parts[0], value = parts[1];
-                    ConfigKey key = ConfigKey.get(name);
-                    hwdevice.config_set(key, key.parse_string(value));
+                    ConfigKey key = ConfigKey.get_by_identifier(name);
+                    device.config_set(key, key.parse_string(value));
                 }
             }
         }
@@ -315,8 +277,8 @@ class SigrokCLI
             /* Enable selected channels only. */
             String[] enabled = (arg_string("channels")).split(",");
             Set<String> enabled_set = new HashSet<String>(Arrays.asList(enabled));
-            for (Channel channel : device.get_channels())
-                channel.set_enabled(enabled_set.contains(channel.get_name()));
+            for (Channel channel : device.channels())
+                channel.set_enabled(enabled_set.contains(channel.name()));
         }
 
         if (arg_given("set"))
@@ -332,29 +294,20 @@ class SigrokCLI
 
         /* Create output. */
         OutputFormat output_format =
-            context.get_output_formats().get(arg_string("output_format"));
+            context.output_formats().get(arg_string("output_format"));
         Output output = output_format.create_output(device);
 
         /* Add datafeed callback. */
         session.add_datafeed_callback(new CLIDatafeedCallback(output));
 
-        if (arg_given("input_file"))
-        {
-            /* Load data from file. */
-            ifdevice.load();
-            session.stop();
-        }
-        else
-        {
-            /* Start capture. */
-            session.start();
+        /* Start capture. */
+        session.start();
 
-            /* Run event loop. */
-            session.run();
+        /* Run event loop. */
+        session.run();
 
-            /* Close device. */
-            device.close();
-        }
+        /* Close device. */
+        device.close();
 
         System.exit(0);
     }
