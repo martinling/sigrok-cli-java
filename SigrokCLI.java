@@ -240,6 +240,9 @@ class SigrokCLI
             /* Use first device found. */
             device = devices.get(0);
 
+            /* Open it */
+            device.open();
+
             /* Apply device settings from command line. */
             Map<ConfigKey, String> options = new HashMap<ConfigKey, String>();
             options.put(ConfigKey.getLIMIT_MSEC(), "time");
